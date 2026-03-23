@@ -10,9 +10,10 @@
   "dependencies": {
     "@google/generative-ai": "^0.21.0",
     "axios": "^1.13.6",
-    "dotenv": "^16.0.0",
+    "dotenv": "^16.6.1",
     "google-tts-api": "^2.0.2",
     "node-telegram-bot-api": "^0.65.0",
-    "openai": "^4.28.0"
+    "openai": "^4.104.0",
+    "puppeteer": "^24.40.0"
   }
 }
