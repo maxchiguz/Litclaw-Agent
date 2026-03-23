@@ -1,0 +1,17 @@
+{
+  "name": "litclaw-agent",
+  "version": "1.0.0",
+  "main": "telegram_agent.js",
+  "scripts": {
+    "start": "node telegram_agent.js",
+    "clean": "node telegram_agent_clean.js",
+    "debug": "node telegram_agent_debug.js"
+  },
+  "dependencies": {
+    "@google/generative-ai": "^0.21.0",
+    "dotenv": "^16.0.0",
+    "google-tts-api": "^2.0.2",
+    "node-telegram-bot-api": "^0.65.0",
+    "openai": "^4.28.0"
+  }
+}
