@@ -14,8 +14,9 @@ This skill documents the "Single-Brain" architecture used to create the Litclaw 
 | **Brain** | Deepseek-Chat | Handles logic, tool orchestration, and conversation. |
 | **Eyes** | Gemini-2.5-Flash | Analyzes photos, videos, and browser screenshots. |
 | **Ears** | Groq Whisper-large-v3 | Transcribes voice notes into text for the brain. |
+| **Research** | Brave Search API | Provides lightning-fast, high-quality web results. |
+| **Body** | Puppeteer (Headed) | Allows the agent to actively browse and interact (Visible). |
 | **Mouth** | Google-TTS-API | Converts the brain's text responses into voice notes. |
-| **Body** | Puppeteer (Node.js) | Allows the agent to actively browse and interact with websites. |
 | **Interface** | Telegram Bot API | The user-facing platform. |
 
 ## Core Logic (The "Single-Brain" Loop)
@@ -34,7 +35,9 @@ The key to Litclaw is that **only one model (Deepseek)** makes decisions. The ot
 
 - **Safe Paths**: Restricts file operations to the designated workspace.
 - **Message Splitting**: Handles Telegram's 4096-character limit by auto-chunking long responses.
-- **Browser Automation**: Uses Puppeteer to click, type, and navigate, with Gemini providing "Visual Verification" of the page.
+- **Brave Search Integration**: Fast API-based search before falling back to browser scraping.
+- **Headed Browser**: Uses a visible Chromium window for real-time monitoring.
+- **Visual Verification**: Uses Gemini to look at screenshots of the browser.
 
 ## How to Maintain
 

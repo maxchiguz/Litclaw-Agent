@@ -6,7 +6,8 @@ const { GoogleAIFileManager } = require('@google/generative-ai/server');
 const googleTTS = require('google-tts-api');
 const fs = require('fs');
 const path = require('path');
-const browserManager = require('./browser_manager');
+const axios = require('axios');
+const browserManager = require('./browser_manager_headed');
 
 // Extract API Keys
 const token = process.env.BOT_TOKEN;
@@ -14,12 +15,27 @@ const geminiApiKey = process.env.GEMINI_API_KEY;
 const deepseekApiKey = process.env.DEEPSEEK_API_KEY;
 const grokApiKey = process.env.GROK_API_KEY;
 const groqApiKey = process.env.GROQ_API_KEY;
+const braveApiKey = process.env.BRAVE_API_KEY;
 const workspaceDir = path.resolve(process.cwd());
 
 if (!token || !deepseekApiKey) {
     console.error("Missing critical BOT_TOKEN or DEEPSEEK_API_KEY in .env!");
     process.exit(1);
 }
+
+// ==== GLOBAL ERROR HANDLING ====
+process.on('uncaughtException', (err) => {
+    const log = `[${new Date().toISOString()}] UNCAUGHT EXCEPTION: ${err.stack}\n`;
+    fs.appendFileSync(path.join(workspaceDir, 'bot_error.log'), log);
+    console.error(log);
+    process.exit(1); 
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+    const log = `[${new Date().toISOString()}] UNHANDLED REJECTION: ${reason}\n`;
+    fs.appendFileSync(path.join(workspaceDir, 'bot_error.log'), log);
+    console.error(log);
+});
 
 // ==== CLIENT INITIALIZATION ====
 const genAI = new GoogleGenerativeAI(geminiApiKey);
@@ -83,6 +99,17 @@ const availableFunctions = {
             const result = await browserManager.type(selector, text);
             return result;
         } catch (e) { return `Browser Error: ${e.message}`; }
+    },
+    brave_search: async ({ query }) => {
+        try {
+            console.log(`🔍 Searching Brave for: ${query}`);
+            const response = await axios.get('https://api.search.brave.com/res/v1/web/search', {
+                params: { q: query },
+                headers: { 'X-Subscription-Token': braveApiKey, 'Accept': 'application/json' }
+            });
+            const results = response.data.web.results.slice(0, 5).map(r => `${r.title}\nURL: ${r.url}\nSnippet: ${r.description}`).join('\n\n');
+            return results || "No search results found.";
+        } catch (e) { return `Brave Search Error: ${e.response ? e.response.data.message : e.message}`; }
     }
 };
 
@@ -93,7 +120,8 @@ const openaiTools = [
     { type: "function", function: { name: "browser_navigate", description: "Navigates the browser to any URL.", parameters: { type: "object", properties: { url: { type: "string" } }, required: ["url"] } } },
     { type: "function", function: { name: "browser_screenshot", description: "Takes a screenshot of the current browser page.", parameters: { type: "object", properties: {} } } },
     { type: "function", function: { name: "browser_click", description: "Clicks an element in the browser using a CSS selector.", parameters: { type: "object", properties: { selector: { type: "string" } }, required: ["selector"] } } },
-    { type: "function", function: { name: "browser_type", description: "Types text into a field in the browser.", parameters: { type: "object", properties: { selector: { type: "string" }, text: { type: "string" } }, required: ["selector", "text"] } } }
+    { type: "function", function: { name: "browser_type", description: "Types text into a field in the browser.", parameters: { type: "object", properties: { selector: { type: "string" }, text: { type: "string" } }, required: ["selector", "text"] } } },
+    { type: "function", function: { name: "brave_search", description: "Searches the web for live information via Brave API.", parameters: { type: "object", properties: { query: { type: "string" } }, required: ["query"] } } }
 ];
 
 const systemInstruction = `You are a Single-Brain AI Agent acting as an advanced file, coding, and browser assistant. 
@@ -103,6 +131,13 @@ When you need to see what's on the page, use 'browser_screenshot'. I will automa
 CRITICAL: When using tools, ensure all your function arguments are proper, valid, fully escaped JSON.`;
 
 const bot = new TelegramBot(token, { polling: true });
+
+// Log polling errors but don't crash
+bot.on('polling_error', (error) => {
+    const log = `[${new Date().toISOString()}] POLLING ERROR: ${error.message}\n`;
+    fs.appendFileSync(path.join(workspaceDir, 'bot_error.log'), log);
+    console.error(log);
+});
 
 // Unified conversational history
 const conversationSessions = new Map();
